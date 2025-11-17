@@ -1,85 +1,194 @@
+% --- Taxi Routing Solver para telingo ---
+% Este archivo (taxi.lp) contiene la lógica general del problema.
+% Debe ser ejecutado junto con un archivo de instancia (ej. domain.lp)
+% generado por encode.py.
+%
+% Ejemplo: telingo taxi.lp domain.lp
+
+
+% --- PROGRAMA BASE (Estático) ---
+% Hechos estáticos que no cambian con el tiempo.
 #program base.
 
-cell(1..3, 1..3).
-building(2,2).
+% Definición de direcciones para la acción 'move'.
+dir(up, -1, 0).
+dir(down, 1, 0).
+dir(left, 0, -1).
+dir(right, 0, 1).
+direction(up; down; left; right).
 
-taxi(t1).
-passenger(p1).
+% --- PREDICADOS DE ESTADO (Fluents) ---
+% Estos son los predicados que cambian en cada paso de tiempo.
+% Telingo 2.1.2 los infiere automáticamente sin la directiva #fluent.
 
-init_pos(t1,1,1).
-init_pos(p1,3,3).
 
-station(1,3).
-
-% Estado: una posición por taxi y una posición por pasajero (fuera)
-{ at(T,X,Y) : cell(X,Y) } = 1 :- taxi(T).
-{ atp(P,X,Y) : cell(X,Y) } = 1 :- passenger(P).
-{ in(P,T) } :- passenger(P), taxi(T).
-
+% --- PROGRAMA DE PASO (Transición) ---
+% Define la lógica para pasar del tiempo t-1 al tiempo t.
 #program step(t).
 
-% Acciones (exactamente una por taxi cada paso)
+% --- 1. ELECCIÓN DE ACCIONES ---
+% Cada taxi (T) debe elegir exactamente una acción en cada paso (t).
 1 {
-    move(T,up); move(T,down); move(T,left); move(T,right);
-    pick(T,P); drop(T,P); wait(T)
+    % Moverse en una dirección (D)
+    move(T, D) : direction(D);
+
+    % Recoger un pasajero (P)
+    pick(T, P) : passenger(P);
+
+    % Dejar un pasajero (P)
+    drop(T, P) : passenger(P);
+
+    % Esperar
+    wait(T)
 } 1 :- taxi(T).
 
-dir(up,0,1).
-dir(down,0,-1).
-dir(left,-1,0).
-dir(right,1,0).
 
-% Efecto de mover
-at(T,X2,Y2) :-
-    move(T,D),
-    dir(D,DX,DY),
-    at(T,X1,Y1),
-    X2 = X1 + DX, Y2 = Y1 + DY.
+% --- 2. PRECONDICIONES DE ACCIÓN ---
+% Restricciones que impiden acciones imposibles.
 
-% Efecto de esperar
-at(T,X,Y) :- wait(T), at(T,X,Y).
+% No puedes moverte a una celda fuera de los límites (calculamos la nueva posición)
+:- move(T, D), holds(at(taxi(T), R1, C1), t-1), dir(D, DR, DC),
+   R2 = R1 + DR,
+   C2 = C1 + DC,
+   not cell(R2, C2).
 
-% No entrar en edificios
-:- at(T,X,Y), building(X,Y).
+% No puedes moverte a una celda que es un edificio
+:- move(T, D), holds(at(taxi(T), R1, C1), t-1), dir(D, DR, DC),
+   R2 = R1 + DR,
+   C2 = C1 + DC,
+   building(R2, C2).
 
-% Pick: pasajero dentro si taxi y pasajero coinciden
-in(P,T) :-
-    pick(T,P),
-    at(T,X,Y),
-    atp(P,X,Y).
+% No puedes recoger un pasajero (P) si el taxi (T) no está libre
+:- pick(T, P), not holds(free(taxi(T)), t-1).
 
-% Drop: pasajero aparece en la celda del taxi
-atp(P,X,Y) :-
-    drop(T,P),
-    in(P,T),
-    at(T,X,Y).
+% No puedes recoger un pasajero (P) si no está en la misma celda que el taxi
+:- pick(T, P), holds(at(taxi(T), RT, CT), t-1),
+   not holds(at(pass(P), RT, CT), t-1).
 
-% No puede estar a la vez dentro y fuera en cualquier posición
-:- in(P,T), atp(P,_,_).
+% No puedes dejar un pasajero (P) si no está DENTRO del taxi (T)
+:- drop(T, P), not holds(in(pass(P), taxi(T)), t-1).
 
-#program check.
+% Un taxi solo puede realizar una acción de 'pick' o 'drop' a la vez
+:- pick(T, P1), pick(T, P2), P1 != P2.
+:- drop(T, P1), drop(T, P2), P1 != P2.
+:- pick(T, _), drop(T, _).
 
-% Dos taxis no pueden ocupar la misma celda (t1 != t2)
-:- taxi(T1), taxi(T2), not T1 = T2, at(T1,X,Y), at(T2,X,Y).
 
-% Dos pasajeros no pueden ocupar la misma celda
-:- passenger(P1), passenger(P2), not P1 = P2, atp(P1,X,Y), atp(P2,X,Y).
+% --- 3. EFECTOS DE LAS ACCIONES ---
+% Cómo las acciones (válidas) cambian el estado en el tiempo t.
 
-% Si un pasajero está dentro del taxi, no puede estar fuera en otra celda:
-% prohibimos X distinto o Y distinto mediante dos restricciones separadas
-:- in(P,T), atp(P,Xp,Yp), at(T,Xt,Yt), not Xp = Xt.
-:- in(P,T), atp(P,Xp,Yp), at(T,Xt,Yt), not Yp = Yt.
+% --- Efectos de 'move' ---
+holds(at(taxi(T), R2, C2), t) :-
+    move(T, D),
+    holds(at(taxi(T), R1, C1), t-1),
+    dir(D, DR, DC),
+    R2 = R1 + DR,
+    C2 = C1 + DC.
 
-% Dos taxis no pueden intercambiar posiciones en un único paso (swap)
-:- taxi(T1), taxi(T2), not T1 = T2,
-   move(T1,D1), move(T2,D2),
-   at(T1,X1,Y1), at(T2,X2,Y2),
-   dir(D1,DX1,DY1), dir(D2,DX2,DY2),
-   X1 + DX1 = X2, Y1 + DY1 = Y2,
-   X2 + DX2 = X1, Y2 + DY2 = Y1.
+% --- Efectos de 'pick' ---
+% El pasajero (P) está 'en' el taxi (T)
+holds(in(pass(P), taxi(T)), t) :-
+    pick(T, P).
 
-% Objetivo: pasajero en estación
-goal :- passenger(P), atp(P,X,Y), station(X,Y).
+% El taxi (T) ya no está 'libre'
+not holds(free(taxi(T)), t) :-
+    pick(T, P).
 
-% Temporal: eventualmente se alcanza goal
-:- not diamond goal.
+% El pasajero (P) ya no está 'en' (at) la celda (porque está 'in' el taxi)
+not holds(at(pass(P), R, C), t) :-
+    pick(T, P),
+    holds(at(pass(P), R, C), t-1).
+
+% --- Efectos de 'drop' ---
+% El pasajero (P) aparece 'en' (at) la celda del taxi
+holds(at(pass(P), R, C), t) :-
+    drop(T, P),
+    holds(at(taxi(T), R, C), t-1). % El taxi no se ha movido este turno
+
+% El taxi (T) vuelve a estar 'libre'
+holds(free(taxi(T)), t) :-
+    drop(T, P).
+
+% El pasajero (P) ya no está 'en' (in) el taxi
+not holds(in(pass(P), taxi(T)), t) :-
+    drop(T, P).
+
+% --- Efectos de 'wait' (y no-movimiento para pick/drop) ---
+% Un taxi que espera, recoge o deja, se queda en su celda
+% [Este bloque ha sido eliminado porque es redundante
+% con la regla de inercia de la posición del taxi]
+
+
+% --- 4. INERCIA (Lo que NO cambia) ---
+% Si no se dice lo contrario, las cosas siguen igual.
+
+% Inercia de la posición del taxi (si no se mueve)
+holds(at(taxi(T), R, C), t) :-
+    holds(at(taxi(T), R, C), t-1),
+    not move(T, _).
+
+% Inercia de la posición del pasajero (si no es recogido)
+holds(at(pass(P), R, C), t) :-
+    holds(at(pass(P), R, C), t-1),
+    not pick(_, P).
+
+% Inercia del pasajero DENTRO del taxi (si no es dejado)
+holds(in(pass(P), taxi(T)), t) :-
+    holds(in(pass(P), taxi(T)), t-1),
+    not drop(T, P).
+
+% Inercia del estado 'libre' del taxi (si no recoge o deja)
+holds(free(taxi(T)), t) :-
+    holds(free(taxi(T)), t-1),
+    not pick(T, _), not drop(T, _).
+
+
+% --- 5. RESTRICCIONES DEL DOMINIO (Enunciado) ---
+% Reglas que deben cumplirse en TODO momento (t).
+
+% 1. Dos taxis no pueden estar en la misma celda
+:- holds(at(taxi(T1), R, C), t),
+   holds(at(taxi(T2), R, C), t),
+   T1 != T2.
+
+% 2. Dos pasajeros no pueden estar en la misma celda (fuera del taxi)
+:- holds(at(pass(P1), R, C), t),
+   holds(at(pass(P2), R, C), t),
+   P1 != P2.
+
+% 3. No puede haber un pasajero 'en' (at) y otro 'in' (in) en la misma celda
+:- holds(at(pass(P1), R, C), t),
+   holds(in(pass(P2), taxi(T)), t),
+   holds(at(taxi(T), R, C), t).
+
+% 4. Dos taxis no pueden intercambiar (swap) posiciones
+:- move(T1, D1), move(T2, D2),
+   holds(at(taxi(T1), R1, C1), t-1),
+   holds(at(taxi(T2), R2, C2), t-1),
+   dir(D1, DR1, DC1), dir(D2, DR2, DC2),
+   R1 + DR1 == R2,
+   C1 + DC1 == C2, % T1 se mueve a la pos de T2
+   R2 + DR2 == R1,
+   C2 + DC2 == C1, % T2 se mueve a la pos de T1
+   T1 != T2.
+
+
+% --- PROGRAMA FINAL (Objetivo) ---
+% Define cuándo consideramos que el plan ha terminado.
+#program final(t).
+
+% El objetivo para un pasajero (P) es estar en CUALQUIER estación
+goal(P) :-
+    holds(at(pass(P), R, C), t),
+    station(R, C).
+
+% El objetivo final se cumple si TODOS los pasajeros están en una estación
+:- passenger(P), not goal(P).
+
+
+% --- SALIDA ---
+% Muestra las acciones que forman el plan.
+#show move/2.
+#show pick/2.
+#show drop/2.
+#show wait/1.
