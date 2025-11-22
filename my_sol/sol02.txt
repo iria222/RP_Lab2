@@ -1,0 +1,60 @@
+telingo version 2.1.2
+Reading from taxi_prueba.lp ...
+<string>:14:38-51: info: atom does not occur in any rule head:
+  building(R,C,#Inc0)
+
+<string>:47:44-58: info: atom does not occur in any rule head:
+  do(#X0,move(#P1),#X2)
+
+<string>:62:17-30: info: atom does not occur in any rule head:
+  inside(#P0,#X1,#X2)
+
+<string>:97:1-14: info: no atoms over signature occur in program:
+  drop/2
+
+<string>:96:1-14: info: no atoms over signature occur in program:
+  pick/2
+
+<string>:98:1-14: info: no atoms over signature occur in program:
+  wait/2
+
+<string>:95:1-14: info: no atoms over signature occur in program:
+  move/3
+
+Solving...
+Solving...
+Solving...
+Solving...
+Solving...
+Solving...
+Solving...
+Solving...
+Solving...
+Solving...
+Answer: 1 (Time: 0.098s)
+ State 0:
+ State 1:
+  move(1,l) move(2,r)
+ State 2:
+  pick(1)
+  wait(2)
+ State 3:
+  move(1,r) move(2,l)
+ State 4:
+  drop(1)
+  wait(2)
+ State 5:
+  move(1,l) move(2,l)
+ State 6:
+  pick(2)
+  wait(1)
+ State 7:
+  wait(1)
+  move(2,r)
+ State 8:
+  wait(1)
+  move(2,r)
+ State 9:
+  drop(2)
+  wait(1)
+SATISFIABLE
