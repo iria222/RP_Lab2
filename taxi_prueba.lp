@@ -62,6 +62,7 @@ inside(P, T)     :- 'inside(P, T), not do(T, drop).
 :- do(T, pick), 'inside(_, T).
 :- do(T, pick), 'taxi_at(T, R, C), not 'pass_at(_, R, C).
 :- do(T, drop), not 'inside(_, T).
+:- inside(P1, T), inside(P2, T), P1 != P2.
 
 % Conflictos de pasajeros
 :- pass_at(P1, R, C), pass_at(P2, R, C), P1 < P2.

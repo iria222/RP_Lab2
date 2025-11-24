@@ -1,47 +1,3 @@
-telingo version 2.1.2
-Reading from taxi_prueba.lp ...
-<string>:47:44-58: info: atom does not occur in any rule head:
-  do(#X0,move(#P1),#X2)
-
-<string>:62:17-30: info: atom does not occur in any rule head:
-  inside(#P0,#X1,#X2)
-
-<string>:97:1-14: info: no atoms over signature occur in program:
-  drop/2
-
-<string>:96:1-14: info: no atoms over signature occur in program:
-  pick/2
-
-<string>:98:1-14: info: no atoms over signature occur in program:
-  wait/2
-
-<string>:95:1-14: info: no atoms over signature occur in program:
-  move/3
-
-Solving...
-Solving...
-Solving...
-Solving...
-Solving...
-Solving...
-Solving...
-Solving...
-Solving...
-Solving...
-Solving...
-Solving...
-Solving...
-Solving...
-Solving...
-Solving...
-Solving...
-Solving...
-Solving...
-Solving...
-Solving...
-Solving...
-Solving...
-Answer: 1 (Time: 11.712s)
  State 0:
  State 1:
   move(1,r) move(2,d) move(3,l)
@@ -60,36 +16,35 @@ Answer: 1 (Time: 11.712s)
  State 7:
   move(1,r) move(2,r) move(3,r)
  State 8:
-  wait(1)
-  move(2,r) move(3,r)
+  move(1,u) move(2,u) move(3,r)
  State 9:
   move(1,u) move(2,r) move(3,r)
  State 10:
-  move(1,u) move(2,u) move(3,r)
+  move(1,u) move(2,r) move(3,r)
  State 11:
-  move(1,u) move(2,u) move(3,d)
+  move(1,r) move(2,u) move(3,d)
  State 12:
-  move(1,r) move(2,u) move(3,d)
+  wait(3)
+  move(1,r) move(2,u)
  State 13:
-  move(1,r) move(2,u) move(3,d)
+  move(1,d) move(2,u) move(3,d)
  State 14:
   move(1,d) move(2,r) move(3,d)
  State 15:
-  move(1,d) move(2,r) move(3,r)
+  move(1,d) move(2,r) move(3,d)
  State 16:
   move(1,d) move(2,d) move(3,r)
  State 17:
-  move(1,d) move(2,d) move(3,u)
+  move(1,r) move(2,d) move(3,r)
  State 18:
   move(1,r) move(2,d) move(3,u)
  State 19:
-  move(1,r) move(2,d) move(3,u)
+  move(1,u) move(2,d) move(3,u)
  State 20:
   move(1,u) move(2,r) move(3,u)
  State 21:
-  drop(3)
-  move(1,u) move(2,r)
+  drop(1)
+  move(2,r) move(3,u)
  State 22:
-  drop(1) drop(2)
-  wait(3)
-SATISFIABLE
+  drop(2) drop(3)
+  move(1,d)
